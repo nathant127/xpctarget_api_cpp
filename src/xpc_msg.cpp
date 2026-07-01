@@ -29,7 +29,7 @@ template <typename DataType>
 void Message::push(const DataType* buf, size_t buf_size) {
     size_t buf_byte_size = buf_size * sizeof(DataType);
     size_t prefix_length = 0;
-    // size_t next_size = get_next_size();
+    size_t next_size = get_next_size();
 
     if (buf_size == 0) {
         throw std::logic_error("Tried to push empty buffer");

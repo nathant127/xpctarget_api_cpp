@@ -24,6 +24,8 @@ int Connection::Connect() {
     }
 
     // TODO: Handle connection messages, i think it pings or something?
+
+    return 0;
 }
 
 int Connection::Send(Message& msg) {

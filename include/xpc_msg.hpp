@@ -24,7 +24,12 @@ public:
 
     int send(const Connection& con);
 
-    void decode_response(const void* res, size_t res_size);
+    template <typename Type>
+    void read(Type& x);
+    template<typename Type>
+    void read(std::vector<Type>& vec);
+    void read(std::string& str);
+
     
     void clear();
     

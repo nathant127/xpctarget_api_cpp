@@ -21,7 +21,7 @@ Message::~Message() {
 }
 
 template <typename DataType>
-void push(const std::vector<DataType> buf) {
+void Message::push(const std::vector<DataType> buf) {
     push(buf.data(), buf.size());
 }
 
@@ -112,6 +112,23 @@ int Message::send(const Connection& con) {
 
     
     return 0;
+}
+
+template <typename Type>
+void Message::read(Type& x) {
+    x = *(reinterpret_cast<Type>(&res_data[read_idx]));
+    read_idx += sizeof(Type);
+}
+template<typename Type>
+void Message::read(std::vector<Type>& vec) {
+    vec.clear();
+
+    int32_t size;
+    memcpy(&size, &res_data[read_idx], sizeof(size));
+    read_idx += sizeof(size);
+
+    vec.resize(size);
+    memcpy(vec.data(), &res_data[read_idx], size);
 }
 
 void Message::get_tx_payloads(void*& p1, size_t& p1len, void*& p2, size_t& p2len) {

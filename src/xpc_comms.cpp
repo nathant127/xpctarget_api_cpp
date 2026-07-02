@@ -13,7 +13,7 @@ Connection::~Connection() {
     close(socket_);
 }
 
-int Connection::Connect() {
+int Connection::con_connect() {
     for (int i = 0; i < 10; i++) {
         int ret = connect(socket_, reinterpret_cast<sockaddr*>(&server_addr_), sizeof(server_addr_));
         if (ret != -1) {
@@ -28,35 +28,10 @@ int Connection::Connect() {
     return 0;
 }
 
-int Connection::Send(Message& msg) {
-    void* p1;
-    void* p2;
-    size_t p1_len, p2_len;
-
-    msg.get_tx_payloads(p1, p1_len, p2, p2_len);
-
-    if (send(socket_, p1, p1_len, 0) == -1)
-    {
-        return 1;
-    }
-    if (p2_len != 0 && 
-        send(socket_, p2, p2_len, 0) == -1) 
-    {
-        return 1;
-    }
-
-    // TODO: Handle Response
-
-    return 0;
+int Connection::con_send(const void* buf, size_t n) const {
+    return send(socket_, buf, n, 0);
 }
 
-// Stubs for now, maybe forever
-int Connection::SendAsync(Message* msg) {
-    return 0;
-}
-int Connection::WaitOnResponse() {
-    return 0;
-}
-int Connection::CheckResponse() {
-    return 0;
+int Connection::con_recv(void* buf, size_t n) const {
+    return recv(socket_, buf, n, 0);
 }

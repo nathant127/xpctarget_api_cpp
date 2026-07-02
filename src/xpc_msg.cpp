@@ -70,6 +70,50 @@ void Message::push(const DataType* buf, size_t buf_size) {
     memcpy(reinterpret_cast<void*>(payload_write_ptr), reinterpret_cast<const void*>(buf), buf_byte_size);
 }
 
+int Message::send(const Connection& con) {
+    read_idx = 0;
+
+    void* p1;
+    void* p2;
+    size_t p1_len, p2_len;
+
+    get_tx_payloads(p1, p1_len, p2, p2_len);
+
+    if (con.con_send(p1, p1_len) == -1)
+    {
+        return 1;
+    }
+    if (p2_len != 0 && 
+        con.con_send(p2, p2_len) == -1) 
+    {
+        return 1;
+    }
+
+    // Handle possibilty of no response expected
+    if (cmd_table.at({cmd_, subcmd_}).expect_response == false) {
+        res_data.clear();
+        return 0;
+    }
+
+
+    if (con.con_recv(&res_header, sizeof(res_header)) != sizeof(res_header)) {
+        return 2;
+    }
+
+    if (res_header.size == 0) {
+        res_data.clear();
+        return 0;
+    }
+
+    res_data.resize(res_header.size);
+    if (con.con_recv(res_data.data(), res_header.size) != res_header.size) {
+        return 2;
+    }
+
+    
+    return 0;
+}
+
 void Message::get_tx_payloads(void*& p1, size_t& p1len, void*& p2, size_t& p2len) {
     if (!is_payload1_full) {
         p1 = payload.data();

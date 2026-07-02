@@ -14,9 +14,10 @@ public:
     Connection() = delete;
     ~Connection();
 
-    int Connect();
+    int con_connect();
 
-    int Send(Message& msg);
+    int con_send(const void* buf, size_t n) const;
+    int con_recv(void* buf, size_t n) const;
 
     // Maybe?
     int SendAsync(Message* msg);
@@ -24,7 +25,6 @@ public:
     int CheckResponse();
 
 private:
-
     int socket_;
     sockaddr_in server_addr_;
 

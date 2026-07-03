@@ -29,24 +29,25 @@ template <typename DataType>
 void Message::push(const DataType* buf, size_t buf_size) {
     size_t buf_byte_size = buf_size * sizeof(DataType);
     size_t prefix_length = 0;
-    size_t next_size = get_next_size();
+    Fmt next_fmt = get_next_fmt();
+    size_t expected_size = fmt_size(next_fmt);
 
     if (buf_size == 0) {
         throw std::logic_error("Tried to push empty buffer");
     }
 
-    // if (next_size == 0) {
-    //     throw std::logic_error("tried to push when payload is done");
-    // }
-    // if (next_size != -1 && 
-    //         next_size != buf_byte_size) 
-    // {
-    //     std::ostringstream msg;
-    //     msg << "tried to push buffer with incorrect size: " << buf_byte_size << ", expected " << next_size;
-    //     throw std::logic_error("");
-    // }
+    if (expected_size == 0) {
+        throw std::logic_error("tried to push when payload is done");
+    }
+    if (expected_size != -1 && 
+            next_size != buf_byte_size) 
+    {
+        std::ostringstream msg;
+        msg << "tried to push buffer with incorrect size: " << buf_byte_size << ", expected " << next_size;
+        throw std::logic_error("");
+    }
 
-    if (next_size == -1) {
+    if (expected_size == -1) {
         prefix_length = 4;
     }
 
@@ -62,12 +63,14 @@ void Message::push(const DataType* buf, size_t buf_size) {
     std::byte* payload_write_ptr = payload.data() + payload_original_size;
 
     // Add length prefix if needed
-    if (next_size == -1) {
+    if (expected_size == -1) {
         int32_t buf_size_int = buf_size;
         memcpy(payload_write_ptr, &buf_size_int, sizeof(int32_t));
     }
     // Add data
     memcpy(reinterpret_cast<void*>(payload_write_ptr), reinterpret_cast<const void*>(buf), buf_byte_size);
+    // Increment header size count
+    *reinterpret_cast<int*>(&payload[4]) += buf_byte_size;
 }
 
 int Message::send(const Connection& con) {
@@ -155,9 +158,22 @@ void Message::clear() {
     payload.clear();
     is_payload1_full = false;
     payload1_finalsize = 0;
+
+    res_data.clear();
+    next_tx_fmt_ptr_ = nullptr;
 }
 
-size_t get_next_size() {
-    // Stub implementation
-    return 0;
+Fmt Message::get_next_fmt() {
+    Fmt return_fmt = Fmt::NONE;
+    if (!next_tx_fmt_ptr_) {
+        next_tx_fmt_ptr_ = cmd_table.at(Cmd{cmd_, subcmd_}).tx_fmt;
+    }
+
+    // If at end of fmt table, just return none and don't increment
+    return_fmt = *next_tx_fmt_ptr_;
+    if (return_fmt == Fmt::NONE)
+        return Fmt::NONE;
+
+    next_tx_fmt_ptr_++;
+    return return_fmt;
 }

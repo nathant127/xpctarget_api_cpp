@@ -82,12 +82,12 @@ int Message::send(const Connection& con) {
 
     if (con.con_send(p1, p1_len) == -1)
     {
-        return 1;
+        std::runtime_error("Failed to send msg");
     }
     if (p2_len != 0 && 
         con.con_send(p2, p2_len) == -1) 
     {
-        return 1;
+        std::runtime_error("Failed to send msg p2");
     }
 
     // Handle possibilty of no response expected
@@ -98,7 +98,7 @@ int Message::send(const Connection& con) {
 
 
     if (con.con_recv(&res_header, sizeof(res_header)) != sizeof(res_header)) {
-        return 2;
+        std::runtime_error("Failed to read response");
     }
 
     if (res_header.size == 0) {
@@ -108,7 +108,7 @@ int Message::send(const Connection& con) {
 
     res_data.resize(res_header.size);
     if (con.con_recv(res_data.data(), res_header.size) != res_header.size) {
-        return 2;
+        std::runtime_error("Failed to read response");
     }
 
     

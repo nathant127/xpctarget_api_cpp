@@ -5,8 +5,7 @@
 #include <unistd.h>
 #include <thread>
 #include <chrono>
-
-#include "xpc_msg.hpp"
+#include <stdexcept>
 
 class Connection {
 public:
@@ -19,10 +18,6 @@ public:
     int con_send(const void* buf, size_t n) const;
     int con_recv(void* buf, size_t n) const;
 
-    // Maybe?
-    int SendAsync(Message* msg);
-    int WaitOnResponse();
-    int CheckResponse();
 
 private:
     int socket_;

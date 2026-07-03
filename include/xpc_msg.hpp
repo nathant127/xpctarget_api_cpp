@@ -8,6 +8,9 @@
 #include <stdexcept>
 #include <cstring>
 #include <unordered_map>
+#include <sstream>
+
+enum class Fmt : uint8_t;
 
 class Message {
 public:
@@ -19,6 +22,7 @@ public:
 
     template <typename DataType>
     void push(const DataType* buf, size_t buf_size);
+    
     template <typename DataType>
     void push(const std::vector<DataType> buf);
 
@@ -31,7 +35,7 @@ public:
     void read(std::string& str);
 
     
-    void clear();
+    void reset(uint8_t cmd, uint8_t subcmd);
     
     
     private:
@@ -64,7 +68,22 @@ public:
 struct Cmd {
     uint8_t cmd;
     uint8_t subcmd;
+    bool operator==(const Cmd& other) const {
+        return cmd == other.cmd && subcmd == other.subcmd;
+    }
 };
+
+namespace std {
+    template <>
+    struct hash<Cmd> {
+        size_t operator()(const Cmd& c) const noexcept {
+            // pack both bytes into one value and hash that
+            return std::hash<uint16_t>()(
+                (static_cast<uint16_t>(c.cmd) << 8) | c.subcmd
+            );
+        }
+    };
+}
 
 enum class Fmt : uint8_t {
     NONE,
@@ -149,9 +168,8 @@ struct CmdInfo {
 };
 
 
-std::unordered_map<Cmd, CmdInfo> cmd_table = {
+inline std::unordered_map<Cmd, CmdInfo> cmd_table = {
     {
-        {0x00, 0x01}, {false, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}}
+        {0xc8, 0x8c}, {false, {Fmt::ARR_BYTE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}}
     },
 };
-

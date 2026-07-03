@@ -14,13 +14,18 @@ Connection::~Connection() {
 }
 
 int Connection::con_connect() {
+    int ret;
     for (int i = 0; i < 10; i++) {
-        int ret = connect(socket_, reinterpret_cast<sockaddr*>(&server_addr_), sizeof(server_addr_));
+        ret = connect(socket_, reinterpret_cast<sockaddr*>(&server_addr_), sizeof(server_addr_));
         if (ret != -1) {
             break;
 
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    if (ret == -1) {
+        throw std::runtime_error{"Failed to connect"};
     }
 
     // TODO: Handle connection messages, i think it pings or something?

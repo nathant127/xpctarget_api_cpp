@@ -1,4 +1,4 @@
-#include "xpc_comms.hpp"
+#include "xpc_msg.hpp"
 
 #define DO_BE_CONV 1
 
@@ -6,14 +6,7 @@ constexpr uint8_t MAGIC_NUM1 = 0x4e;
 constexpr uint8_t MAGIC_NUM2 = 0xcb;
 
 Message::Message(uint8_t cmd, uint8_t subcmd) {
-    payload.resize(8, std::byte{0x00});
-    payload[0] = static_cast<std::byte>(MAGIC_NUM1);
-    payload[1] = static_cast<std::byte>(MAGIC_NUM2);
-    payload[2] = static_cast<std::byte>(cmd);
-    payload[3] = static_cast<std::byte>(subcmd);
-
-    cmd_ = cmd;
-    subcmd_ = subcmd;
+    reset(cmd, subcmd);
 }
 
 Message::~Message() {
@@ -40,11 +33,11 @@ void Message::push(const DataType* buf, size_t buf_size) {
         throw std::logic_error("tried to push when payload is done");
     }
     if (expected_size != -1 && 
-            next_size != buf_byte_size) 
+            expected_size != buf_byte_size) 
     {
-        std::ostringstream msg;
-        msg << "tried to push buffer with incorrect size: " << buf_byte_size << ", expected " << next_size;
-        throw std::logic_error("");
+        std::ostringstream emsg;
+        emsg << "tried to push buffer with incorrect size: " << buf_byte_size << ", expected " << expected_size;
+        throw std::logic_error(emsg.str());
     }
 
     if (expected_size == -1) {
@@ -72,6 +65,11 @@ void Message::push(const DataType* buf, size_t buf_size) {
     // Increment header size count
     *reinterpret_cast<int*>(&payload[4]) += buf_byte_size;
 }
+
+template void Message::push<char>(const char* buf, size_t buf_size);
+template void Message::push<uint8_t>(const uint8_t* buf, size_t buf_size);
+template void Message::push<uint32_t>(const uint32_t* buf, size_t buf_size);
+template void Message::push<float>(const float* buf, size_t buf_size);
 
 int Message::send(const Connection& con) {
     read_idx = 0;
@@ -152,10 +150,15 @@ void Message::get_tx_payloads(void*& p1, size_t& p1len, void*& p2, size_t& p2len
 }
 
 
-void Message::clear() {
-    cmd_ = 0;
-    subcmd_ = 0;
-    payload.clear();
+void Message::reset(uint8_t cmd, uint8_t subcmd) {
+    cmd_ = cmd;
+    subcmd_ = subcmd;
+    payload.resize(8, std::byte{0x00});
+    payload[0] = static_cast<std::byte>(MAGIC_NUM1);
+    payload[1] = static_cast<std::byte>(MAGIC_NUM2);
+    payload[2] = static_cast<std::byte>(cmd);
+    payload[3] = static_cast<std::byte>(subcmd);
+
     is_payload1_full = false;
     payload1_finalsize = 0;
 

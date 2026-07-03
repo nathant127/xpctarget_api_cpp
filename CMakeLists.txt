@@ -45,3 +45,8 @@ target_include_directories(xpcapi
 
 # target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
+add_executable(xpctest
+    src/test.cpp
+)
+target_link_libraries(xpctest xpcapi)
+

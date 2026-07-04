@@ -31,6 +31,8 @@ public:
     void read(Type& x);
     template<typename Type>
     void read(std::vector<Type>& vec);
+    template<typename Type>
+    void read(Type arr[]);
     void read(std::string& str);
 
     
@@ -197,13 +199,22 @@ inline std::unordered_map<Cmd, CmdInfo> cmd_table = {
         {0x14, 0xA1}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get status? 
     },
     {   // {ud} {}
-        {0x14, 0x9B}, {true, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Send Flag to app? 5 = Start, 1 = Stop
+        {0x14, 0x9B}, {false, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Send Flag to app? 5 = Start, 1 = Stop
     },
     {   // {} {}
-        {0x14, 0xAC}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
+        {0x14, 0xAC}, {false, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
     },
 
     {   // {} {s}
         {0xC8, 0x3C}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
     },
+
+    {   // {ud*} {f*}
+        {0x28, 0x0A}, {true, {Fmt::ARR_U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::ARR_F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get signal data
+    },
+    {   // {s} {d}
+        {0x28, 0x46}, {true, {Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::I32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get signal id
+    },
+
+
 };

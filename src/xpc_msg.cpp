@@ -133,6 +133,17 @@ void Message::read(std::vector<Type>& vec) {
     read_idx += bytesize;
 }
 
+template<typename Type>
+void Message::read(Type arr[]) {
+
+    int32_t bytesize;
+    memcpy(&bytesize, &res_data[read_idx], sizeof(bytesize));
+    read_idx += sizeof(bytesize);
+
+    memcpy(arr, &res_data[read_idx], bytesize);
+    read_idx += bytesize;
+}
+
 void Message::read(std::string& str) {
     str.clear();
 

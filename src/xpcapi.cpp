@@ -181,12 +181,21 @@ void xpcapi::xPCMinimumTET(int port, double *data) {
 void xpcapi::xPCMaximumTET(int port, double *data) {
     return;
 }
-int xpcapi::xPCGetSignals(int port, int numSignals, const int *signals,
-                               double *values) {
-    return 0;
+int xpcapi::xPCGetSignals(int port, int numSignals, const int *signals, double *values) {
+    if (numSignals >= 1000) {
+        return -1;
+    }
+    
+    msg_->reset(0x28, 0x0A);
+    msg_->push<uint32_t>(reinterpret_cast<const uint32_t*>(signals), numSignals);
+    msg_->send(*con_);
+
+    msg_->read<double>(values);
 }
-double xpcapi::xPCGetSignal(int port,  int sigNum) {
-    return 0.0;
+double xpcapi::xPCGetSignal(int port, int sigNum) {
+    double value;
+    xPCGetSignals(port, 1, &sigNum, &value);
+    return value;
 }
 void xpcapi::xPCAddScope(int port, int type, int scNum) {
     return;
@@ -329,7 +338,12 @@ int xpcapi::xPCGetSignalWidth(int port, int sigIdx) {
     return 0;
 }
 int xpcapi::xPCGetSignalIdx(int port, const char *sigName ) {
-    return 0;
+    msg_->reset(0x28, 0x46);
+    msg_->push<char>(sigName, strlen(sigName) + 1);
+    msg_->send(*con_);
+    int32_t val;
+    msg_->read<int32_t>(val);
+    return val;
 }
 
 int xpcapi::xPCGetSigLabelWidth(int port, const char *sigName) {

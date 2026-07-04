@@ -14,8 +14,7 @@ enum class Fmt : uint8_t;
 
 class Message {
 public:
-    Message(uint8_t cmd, uint8_t subcmd);
-    Message() = delete;
+    Message();
     ~Message();
 
 
@@ -168,8 +167,43 @@ struct CmdInfo {
 };
 
 
+// Cmd Table is at 18001bb60
+
+/*
+    'u<X>' -> Unsigned X
+    'X*' -> array of X prefixed by length
+    Format Code         Size    Assumed Type
+    'F' = 0x46 | 70     ?       ?
+    'b' = 0x0B | 11     1       uint8_t
+    'c' = 0x0A | 10     1       char
+    'd' = 0x1E | 30     4       int32_t | uint32_t
+    'f' = 0x28 | 40     8       double
+    'i' = 0x14 | 20     2       int16_t | uint16_t
+    's' = 0x3C | 60     1       cstring?
+    '\0' = 0xC8 | 200   0       None?
+*/
+
 inline std::unordered_map<Cmd, CmdInfo> cmd_table = {
-    {
-        {0xc8, 0x8c}, {false, {Fmt::ARR_BYTE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}}
+    {   // {b*} {}
+        {0xc8, 0x8c}, {false, {Fmt::ARR_BYTE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Load app
+    },
+    {   // {} {f}
+        {0x14, 0x28}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get sample time
+    },
+    {   // {} {f}
+        {0x14, 0x0A}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get Stop time
+    },
+    {   // {} {ud}
+        {0x14, 0xA1}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get status? 
+    },
+    {   // {ud} {}
+        {0x14, 0x9B}, {true, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Send Flag to app? 5 = Start, 1 = Stop
+    },
+    {   // {} {}
+        {0x14, 0xAC}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
+    },
+
+    {   // {} {s}
+        {0xC8, 0x3C}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
     },
 };

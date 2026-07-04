@@ -9,11 +9,10 @@
 
 class Connection {
 public:
-    Connection(const char* addr, int port);
-    Connection() = delete;
+    Connection();
     ~Connection();
 
-    int con_connect();
+    int con_connect(const char* addr, int port);
 
     int con_send(const void* buf, size_t n) const;
     int con_recv(void* buf, size_t n) const;

@@ -1,19 +1,20 @@
 #include "xpc_comms.hpp"
 
-Connection::Connection(const char* addr, int port) {
+Connection::Connection() {
     socket_ = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_ == -1) {
         throw std::runtime_error("Failed to create unix socket");
     }
-    server_addr_.sin_family = AF_INET;
-    server_addr_.sin_port = htons(port);
-    server_addr_.sin_addr.s_addr = inet_addr(addr);
 }
 Connection::~Connection() {
     close(socket_);
 }
 
-int Connection::con_connect() {
+int Connection::con_connect(const char* addr, int port) {
+    server_addr_.sin_family = AF_INET;
+    server_addr_.sin_port = htons(port);
+    server_addr_.sin_addr.s_addr = inet_addr(addr);
+
     int ret;
     for (int i = 0; i < 10; i++) {
         ret = connect(socket_, reinterpret_cast<sockaddr*>(&server_addr_), sizeof(server_addr_));

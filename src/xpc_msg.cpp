@@ -5,8 +5,8 @@
 constexpr uint8_t MAGIC_NUM1 = 0x4e;
 constexpr uint8_t MAGIC_NUM2 = 0xcb;
 
-Message::Message(uint8_t cmd, uint8_t subcmd) {
-    reset(cmd, subcmd);
+Message::Message() {
+
 }
 
 Message::~Message() {
@@ -124,12 +124,25 @@ template<typename Type>
 void Message::read(std::vector<Type>& vec) {
     vec.clear();
 
-    int32_t size;
-    memcpy(&size, &res_data[read_idx], sizeof(size));
-    read_idx += sizeof(size);
+    int32_t bytesize;
+    memcpy(&bytesize, &res_data[read_idx], sizeof(bytesize));
+    read_idx += sizeof(bytesize);
 
-    vec.resize(size);
-    memcpy(vec.data(), &res_data[read_idx], size);
+    vec.resize(bytesize);
+    memcpy(vec.data(), &res_data[read_idx], bytesize);
+    read_idx += bytesize;
+}
+
+void Message::read(std::string& str) {
+    str.clear();
+
+    int32_t bytesize;
+    memcpy(&bytesize, &res_data[read_idx], sizeof(bytesize));
+    read_idx += sizeof(bytesize);
+
+    str.resize(bytesize);
+    memcpy(str.data(), &res_data[read_idx], bytesize);
+    read_idx += bytesize;
 }
 
 void Message::get_tx_payloads(void*& p1, size_t& p1len, void*& p2, size_t& p2len) {

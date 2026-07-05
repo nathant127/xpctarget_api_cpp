@@ -1,15 +1,28 @@
-#include "xpc_msg.hpp"
-#include <iostream>
-#include <fstream>
+#include "xpcapi.hpp"
+
+#include "stdio.h"
+
+using namespace xpcapi;
+
+char target_ip[] = "127.0.0.1";
+char target_port[] = "22222";
+constexpr char target_model[] = "AM2_3_1_01HWfullV2_PCIe";
+constexpr char path[] = "../xpc_test";
+
+
+
 
 int main(int argc, char** argv) {
-    Connection con("127.0.0.1", 50505);
-    con.con_connect();
+    printf("Running\n");
 
-    Message msg(0xc8, 0x8c);
+    int port = xPCOpenTcpIpPort(target_ip, target_port);
 
-    std::string example_file_contents = "Hello World\n This is a message, please respond\n";
-    msg.push(example_file_contents.data(), example_file_contents.length() + 1);
-    msg.send(con);
-    
+    printf("Opened Port\n");
+
+    xPCLoadApp(port, path, target_model);
+
+    printf("Sent App\n");
+
+    printf("Done\n");
+
 }

@@ -21,7 +21,6 @@ void Message::push(const std::vector<DataType> buf) {
 template <typename DataType>
 void Message::push(const DataType* buf, size_t buf_size) {
     size_t buf_byte_size = buf_size * sizeof(DataType);
-    size_t prefix_length = 0;
     Fmt next_fmt = get_next_fmt();
     size_t expected_size = fmt_size(next_fmt);
 
@@ -29,47 +28,51 @@ void Message::push(const DataType* buf, size_t buf_size) {
         throw std::logic_error("Tried to push empty buffer");
     }
 
-    if (expected_size == 0) {
+    if (expected_size == 0) { 
         throw std::logic_error("tried to push when payload is done");
     }
-    if (expected_size != -1 && 
-            expected_size != buf_byte_size) 
+    if (expected_size != -1 && // If buffer is not an array
+            expected_size != buf_byte_size) // If the size of the given buffer is not equal to the expected size
     {
         std::ostringstream emsg;
         emsg << "tried to push buffer with incorrect size: " << buf_byte_size << ", expected " << expected_size;
         throw std::logic_error(emsg.str());
     }
 
+    // Add the length prefix if data is an array
     if (expected_size == -1) {
-        prefix_length = 4;
+        int len_prefix = buf_byte_size;
+
+        payload.resize(payload.size() + sizeof(len_prefix));
+        std::byte* p_write = &payload[payload.size() - sizeof(len_prefix)];
+
+        memcpy(p_write, &len_prefix, sizeof(len_prefix));
+        *reinterpret_cast<int*>(&payload[4]) += sizeof(len_prefix);
     }
 
     // Would this push exceed the first payloads max size?
-    if (!is_payload1_full && (payload.size() + buf_byte_size + prefix_length) > payload1_maxsize) {
+    if (!is_payload1_full && (payload.size() + buf_byte_size) > payload1_maxsize) {
         is_payload1_full = true;
         payload1_finalsize = payload.size();
     }
 
     // Resize and get the write position of the vector
-    size_t payload_original_size = payload.size();
-    payload.resize(payload.size() + buf_byte_size + prefix_length);
-    std::byte* payload_write_ptr = payload.data() + payload_original_size;
-
-    // Add length prefix if needed
-    if (expected_size == -1) {
-        int32_t buf_size_int = buf_size;
-        memcpy(payload_write_ptr, &buf_size_int, sizeof(int32_t));
-    }
-    // Add data
-    memcpy(reinterpret_cast<void*>(payload_write_ptr), reinterpret_cast<const void*>(buf), buf_byte_size);
+    payload.resize(payload.size() + buf_byte_size);
+    std::byte* p_write = &payload[payload.size() - buf_byte_size];
+    // Copy buffer into payload
+    memcpy(p_write, buf, buf_byte_size);
     // Increment header size count
     *reinterpret_cast<int*>(&payload[4]) += buf_byte_size;
 }
 
-template void Message::push<char>(const char* buf, size_t buf_size);
 template void Message::push<uint8_t>(const uint8_t* buf, size_t buf_size);
+template void Message::push<char>(const char* buf, size_t buf_size);
+template void Message::push<uint16_t>(const uint16_t* buf, size_t buf_size);
+template void Message::push<int16_t>(const int16_t* buf, size_t buf_size);
 template void Message::push<uint32_t>(const uint32_t* buf, size_t buf_size);
-template void Message::push<float>(const float* buf, size_t buf_size);
+template void Message::push<int32_t>(const int32_t* buf, size_t buf_size);
+template void Message::push<double>(const double* buf, size_t buf_size);
+
 
 int Message::send(const Connection& con) {
     read_idx = 0;
@@ -90,25 +93,18 @@ int Message::send(const Connection& con) {
         std::runtime_error("Failed to send msg p2");
     }
 
-    // Handle possibilty of no response expected
-    if (cmd_table.at({cmd_, subcmd_}).expect_response == false) {
-        res_data.clear();
-        return 0;
-    }
-
 
     if (con.con_recv(&res_header, sizeof(res_header)) != sizeof(res_header)) {
-        std::runtime_error("Failed to read response");
+        std::runtime_error("Failed to read response header");
     }
 
     if (res_header.size == 0) {
-        res_data.clear();
         return 0;
     }
 
     res_data.resize(res_header.size);
     if (con.con_recv(res_data.data(), res_header.size) != res_header.size) {
-        std::runtime_error("Failed to read response");
+        std::runtime_error("Failed to read response data");
     }
 
     
@@ -117,9 +113,18 @@ int Message::send(const Connection& con) {
 
 template <typename Type>
 void Message::read(Type& x) {
-    x = *(reinterpret_cast<Type>(&res_data[read_idx]));
-    read_idx += sizeof(Type);
+    memcpy(&x, &res_data[read_idx], sizeof(x));
+    read_idx += sizeof(x);
 }
+
+template void Message::read<uint8_t>(uint8_t& x);
+template void Message::read<char>(char& x);
+template void Message::read<uint16_t>(uint16_t& x);
+template void Message::read<int16_t>(int16_t& x);
+template void Message::read<uint32_t>(uint32_t& x);
+template void Message::read<int32_t>(int32_t& x);
+template void Message::read<double>(double& x);
+
 template<typename Type>
 void Message::read(std::vector<Type>& vec) {
     vec.clear();
@@ -144,6 +149,14 @@ void Message::read(Type arr[]) {
     read_idx += bytesize;
 }
 
+template void Message::read<uint32_t>(uint32_t* x);
+template void Message::read<int32_t>(int32_t* x);
+template void Message::read<uint16_t>(uint16_t* x);
+template void Message::read<int16_t>(int16_t* x);
+template void Message::read<uint8_t>(uint8_t* x);
+template void Message::read<char>(char* x);
+template void Message::read<double>(double* x);
+
 void Message::read(std::string& str) {
     str.clear();
 
@@ -151,8 +164,7 @@ void Message::read(std::string& str) {
     memcpy(&bytesize, &res_data[read_idx], sizeof(bytesize));
     read_idx += sizeof(bytesize);
 
-    str.resize(bytesize);
-    memcpy(str.data(), &res_data[read_idx], bytesize);
+    str.assign(reinterpret_cast<const char*> (&res_data[read_idx]));
     read_idx += bytesize;
 }
 
@@ -182,6 +194,7 @@ void Message::reset(uint8_t cmd, uint8_t subcmd) {
     payload[1] = static_cast<std::byte>(MAGIC_NUM2);
     payload[2] = static_cast<std::byte>(cmd);
     payload[3] = static_cast<std::byte>(subcmd);
+    *reinterpret_cast<int*>(&payload[4]) = 0;
 
     is_payload1_full = false;
     payload1_finalsize = 0;

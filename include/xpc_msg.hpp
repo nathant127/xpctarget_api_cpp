@@ -163,7 +163,6 @@ inline size_t fmt_size(Fmt fmt) {
 
 
 struct CmdInfo {
-    bool expect_response;
     Fmt tx_fmt[5];
     Fmt rx_fmt[5];
 };
@@ -187,34 +186,35 @@ struct CmdInfo {
 
 inline std::unordered_map<Cmd, CmdInfo> cmd_table = {
     {   // {b*} {}
-        {0xc8, 0x8c}, {false, {Fmt::ARR_BYTE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Load app
+        {0xc8, 0x8c}, {{Fmt::ARR_BYTE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Load app
     },
     {   // {} {f}
-        {0x14, 0x28}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get sample time
+        {0x14, 0x28}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get sample time
     },
     {   // {} {f}
-        {0x14, 0x0A}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get Stop time
+        {0x14, 0x0A}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get Stop time
     },
     {   // {} {ud}
-        {0x14, 0xA1}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get status? 
+        {0x14, 0xA1}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get status? 
     },
     {   // {ud} {}
-        {0x14, 0x9B}, {false, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Send Flag to app? 5 = Start, 1 = Stop
+        {0x14, 0x9B}, {{Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Send Flag to app? 5 = Start, 1 = Stop
     },
     {   // {} {}
-        {0x14, 0xAC}, {false, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
+        {0x14, 0xAC}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
     },
 
     {   // {} {s}
-        {0xC8, 0x3C}, {true, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
+        {0xC8, 0x3C}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
     },
 
     {   // {ud*} {f*}
-        {0x28, 0x0A}, {true, {Fmt::ARR_U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::ARR_F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get signal data
+        {0x28, 0x0A}, {{Fmt::ARR_U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::ARR_F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get signal data
     },
     {   // {s} {d}
-        {0x28, 0x46}, {true, {Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::I32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get signal id
+        {0x28, 0x46}, {{Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::I32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get signal id
     },
 
 
 };
+

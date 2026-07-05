@@ -88,7 +88,7 @@ void xpcapi::xPCUnloadApp(int port) {
     std::string res;
     msg_->read(res);
 
-    if (res != std::string("loader")) {
+    if (res.compare("loader") != 0) {
         int status = xPCIsAppRunning(port);
 
         if (status != 0) {
@@ -99,8 +99,6 @@ void xpcapi::xPCUnloadApp(int port) {
         msg_->reset(0x14, 0xAC);
         msg_->send(*con_);
     }
-
-
 }
 void xpcapi::xPCStartApp(int port) {
     msg_->reset(0x14, 0x9b);
@@ -191,6 +189,8 @@ int xpcapi::xPCGetSignals(int port, int numSignals, const int *signals, double *
     msg_->send(*con_);
 
     msg_->read<double>(values);
+
+    return 0;
 }
 double xpcapi::xPCGetSignal(int port, int sigNum) {
     double value;
@@ -306,16 +306,25 @@ void xpcapi::xPCSetScope(int port, scopedata state) {
     return;
 }
 void xpcapi::xPCLoadApp(int port, const char* pathstr, const char* filename) {
-    std::filesystem::path base = pathstr;
+    xPCUnloadApp(port);
+
+    std::filesystem::path base;
+    if (!pathstr || (strcmp(pathstr, "nopath") == 0)) {
+        base = "./";
+    }
+    else {
+        base = pathstr;
+    }
     std::filesystem::path path = base / filename;
     if (!path.has_extension()) {
-        path = path / ".dlm";
+        path = path.replace_extension(".dlm");
     }
     std::ifstream file(path, std::ios::binary | std::ios::ate);
 
     if (!file.is_open()) {
-        err_ = 0x12;
-        return;
+        std::stringstream ss;
+        ss << "Failed to open file " << path.string();
+        throw std::runtime_error(ss.str());
     }
     std::streamsize size = file.tellg();
     std::vector<char> buf(size);

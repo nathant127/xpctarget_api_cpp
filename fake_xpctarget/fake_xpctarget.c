@@ -6,14 +6,26 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef struct header {
+    unsigned short magic_num;
+    unsigned short cmd;
+    int size;
+} header_t;
+
+header_t req_header;
+unsigned char* request_buf = NULL;
+
+#define MAX_PAYLOAD_SIZE 100
+typedef struct payload {
+    header_t header;
+    unsigned char data[MAX_PAYLOAD_SIZE];
+} payload_t;
+
+payload_t res_packet;
 
 int main(int argc, char** argv) {
-    struct header {
-        unsigned short magic_num;
-        unsigned short cmd;
-        int size;
-    } pheader;
-    unsigned char* buf = NULL;
+
+
 
     printf("Started\n");
 
@@ -46,7 +58,8 @@ int main(int argc, char** argv) {
 
         while (1) {
             
-            int status = recv(connection, &pheader, 8, 0);
+            // Read request header
+            int status = recv(connection, &req_header, sizeof(req_header), 0);
             if (status == 0) {
                 printf("Connection Closed\n");
                 break;
@@ -56,85 +69,66 @@ int main(int argc, char** argv) {
                 close(connection);
                 break;
             }
-            unsigned short cmd = ntohs(pheader.cmd);
-            printf("Recieved cmd: 0x%X size: %i\n", cmd, pheader.size);
 
-            if (cmd == 0xC88C) {
-                int fsize;
-                status = recv(connection, &fsize, sizeof(fsize), 0);
-                if (status == 0) {
-                    printf("Connection Closed\n");
-                    break;
-                }
-                else if (status != 4) {
-                    fprintf(stderr, "fisze recv failed %i", status);
-                    close(connection);
-                    break;
-                }
+            // Get cmd
+            unsigned short cmd = ntohs(req_header.cmd);
+            printf("Recieved cmd: 0x%X size: %i\n", cmd, req_header.size);
 
-                buf = malloc(fsize);
-                unsigned char* buf_write = buf;
-                while (fsize > 0) {
-                    status = recv(connection, buf_write, fsize, 0);
+
+            // Read request data
+            if (req_header.size > 0) {
+
+                request_buf = malloc(req_header.size);
+                int remaining_bytes = req_header.size;
+                unsigned char* buf_write = request_buf;
+                while (remaining_bytes > 0) {
+                    status = recv(connection, buf_write, req_header.size, 0);
+
                     if (status == 0) {
                         printf("Connection Closed\n");
                         break;
                     }
-                    if (status < 0) {
-                        perror("File recv failed\n");
+                    else if (status < 0) {
+                        fprintf(stderr, "data_recv failed, got %i\n", status);
+                        close(connection);
+                        break;
                     }
 
                     buf_write += status;
-                    fsize -= status;
-                    printf("Read %i Remaining %i\n", status, fsize);
-                }
-                
-            }
-            else if (pheader.size > 0) {
-
-                buf = malloc(pheader.size);
-                status = recv(connection, buf, pheader.size, 0);
-
-                if (status == 0) {
-                    printf("Connection Closed\n");
-                    break;
-                }
-                else if (status != pheader.size) {
-                    fprintf(stderr, "recv2 failed, got %i\n", status);
-                    close(connection);
-                    break;
+                    remaining_bytes -= status;
+                    printf("Read %i Remaining %i\n", status, remaining_bytes);
                 }
             }
 
 
 
+            // Handle response depending on cmd
             switch (cmd) {
                 case 0xC83C:
-                char payload[19];
-                memcpy(payload, &pheader, 8);
-                int size = 7 + 4;
-                memcpy(payload + 4, &size, sizeof(size));
-                size = 7;
-                memcpy(payload + 8, &size, sizeof(size));
-                
-                strcpy(&payload[12], "loader");
-                
-                send(connection, payload, 19, 0);
-                break;
+                    res_packet.header = req_header;
+                    res_packet.header.size = 7+sizeof(int);
+     
+                    int size = 7;
+                    memcpy(res_packet.data, &size, sizeof(size));
+                    
+                    strcpy(&res_packet.data[4], "loader");
+                    
+                    send(connection, &res_packet, sizeof(header_t) + res_packet.header.size, 0);
+                    break;
 
                 default:
-                pheader.size = 0;
-                send(connection, &pheader, sizeof(pheader), 0);
-                break;
+                    req_header.size = 0;
+                    send(connection, &req_header, sizeof(req_header), 0);
+                    break;
             }
 
             
 
             printf("Sent Response\n");
 
-            if (buf) {
-                free(buf);
-                buf = NULL;
+            if (request_buf) {
+                free(request_buf);
+                request_buf = NULL;
             }
         }
 

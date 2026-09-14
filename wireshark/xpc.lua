@@ -113,15 +113,29 @@ local function register_cmd(cmd, subcmd, name, req_fmts, resp_fmts)
 end
 
 --                cmd   subcmd  name                    request fmts     response fmts
-register_cmd(0xC8, 0x8C, "Load app",              { "ARR_BYTE" },   {}                )
-register_cmd(0x14, 0x28, "Get sample time",        {},               { "F64" }         )
-register_cmd(0x14, 0x0A, "Get stop time",          {},               { "F64" }         )
-register_cmd(0x14, 0xA1, "Get status",             {},               { "U32" }         )
-register_cmd(0x14, 0x9B, "Send flag to app",       { "U32" },        {}                )
-register_cmd(0x14, 0xAC, "Unknown (0x14/0xAC)",    {},               {}                )
-register_cmd(0xC8, 0x3C, "Unknown (0xC8/0x3C)",    {},               { "STR" }         )
-register_cmd(0x28, 0x0A, "Get signal data",        { "ARR_U32" },    { "ARR_F64" }     )
-register_cmd(0x28, 0x46, "Get signal id",          { "STR" },        { "I32" }         )
+register_cmd(0xC8, 0x8C, "LOAD_APP",              { "ARR_BYTE" },   {}                )
+register_cmd(0x14, 0x28, "GET_SAMPLE_TIME",        {},               { "F64" }         )
+register_cmd(0x14, 0x0A, "GET_STOP_TIME",          {},               { "F64" }         )
+register_cmd(0x14, 0xA1, "GET_STATUS",             {},               { "U32" }         )
+register_cmd(0x14, 0x9B, "START/STOP",              { "U32" },        {}                )
+register_cmd(0x14, 0xAC, "UNLOAD_APP",    {},               {}                )
+register_cmd(0x14, 0x96, "PAR_NUM", {}, {"U32"}) -- Unsure about this fmt, double check
+register_cmd(0x14, 0x97, "SIG_NUM", {}, {"U32"}) -- Unsure about this fmt, double check
+register_cmd(0xC8, 0x3C, "CHECK_LOADED",    {},               { "STR" }         )
+register_cmd(0x28, 0x0A, "SIG_GET",                { "ARR_U32" },    { "ARR_F64" }     )
+register_cmd(0x28, 0x46, "SIG_GET_ID",                  { "STR" },        { "I32" }         )
+register_cmd(0x28, 0x50, "SIG_GET_NAME",                  {},        {}         ) -- Check fmt
+register_cmd(0x28, 0xA0, "SIG_GET_WIDTH",                  { "U32" },        { "U32" }         )
+register_cmd(0x28, 0x64, "SIG_GET_LABEL",                  { "U32" },        { "STR" }         )
+register_cmd(0x28, 0x5A, "SIG_LABEL_WIDTH?",                  {},        {}         ) -- Check fmt
+register_cmd(0x28, 0x1E, "PAR_SET",                  { "U32", "ARR_F64" },        { }         )
+register_cmd(0x28, 0x78, "PAR_GET_?",                  { "U32" },        { "ARR_F64" }         ) -- fmt may be wrong
+register_cmd(0x28, 0x14, "PAR_GET",                  {},        {}         ) -- Check fmt
+register_cmd(0x28, 0x82, "PAR_GET_ID",                  { "STR", "STR" },        { "U32" }         )
+register_cmd(0x28, 0x96, "PAR_GET_TYPE",                  { "U32" },        { "STR" }         )
+register_cmd(0x28, 0x8c, "PAR_GET_NAME",                  {},        {}         ) -- Check fmt
+register_cmd(0x28, 0x6E, "PAR_GET_DIM_SIZE",                  { "U32" },        { "I32" }         )
+
 
 -- To add more commands, copy a register_cmd(...) line above and adjust.
 
@@ -179,6 +193,29 @@ local function rd_uint64(buf)
 end
 local function rd_int64(buf)
     return (ENDIANNESS == "le") and buf:le_int64() or buf:int64()
+end
+
+local function buffer(offset, len, context)
+    context = context or "unknown"
+    
+    if offset < 0 then
+        error(string.format("Negative offset %d in %s", offset, context))
+    end
+    
+    if len < 0 then
+        error(string.format("Negative length %d in %s", len, context))
+    end
+    
+    local buf_len = buffer:len()
+    
+    if offset + len > buf_len then
+        error(string.format(
+            "Buffer overrun in %s: offset=%d, len=%d, buf_len=%d (would read up to byte %d)",
+            context, offset, len, buf_len, offset + len
+        ))
+    end
+    
+    return buffer(offset, len)
 end
 
 -- Adds a multi-byte ProtoField to the tree with display byte-order
@@ -267,8 +304,8 @@ local function parse_field(buffer, offset, spec, subtree, avail)
             error("parse_field: unsupported array element type '" .. tostring(spec.elem) .. "'")
         end
         if avail - (offset + 4) < count * esz then return nil end
-        local arr_subtree = subtree:add(f_arrlen, buffer(offset,4),
-            string.format("%s: array of %d x %s", spec.name, count, spec.elem))
+        local arr_subtree = subtree:add(f_arrlen, buffer(offset,4))
+        arr_subtree:set_text(string.format("%s: array of %d x %s", spec.name, count, spec.elem))
         local pos = offset + 4
         for i = 1, count do
             pos = parse_scalar(buffer, pos, spec.elem,
@@ -375,7 +412,7 @@ end
 -- messages per TCP segment
 ----------------------------------------------------------------------
 
-function xpc.dissector(buffer, pinfo, tree)
+local function dissect(buffer, pinfo, tree)  
     local total_len = buffer:len()
     local offset = 0
     local req = is_request(pinfo)
@@ -414,6 +451,17 @@ function xpc.dissector(buffer, pinfo, tree)
         offset = offset + msg_total
     end
 end
+
+function xpc.dissector(buffer, pinfo, tree)
+    local success, result = pcall(dissect, buffer, pinfo, tree)
+
+    if not success then
+        pinfo.cols.protocol = "XPC"
+        pinfo.cols.info = "ERROR: " .. tostring(result)
+    return
+  end
+end
+
 
 ----------------------------------------------------------------------
 -- Registration

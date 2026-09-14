@@ -66,25 +66,7 @@ public:
     
 };
 
-struct Cmd {
-    uint8_t cmd;
-    uint8_t subcmd;
-    bool operator==(const Cmd& other) const {
-        return cmd == other.cmd && subcmd == other.subcmd;
-    }
-};
 
-namespace std {
-    template <>
-    struct hash<Cmd> {
-        size_t operator()(const Cmd& c) const noexcept {
-            // pack both bytes into one value and hash that
-            return std::hash<uint16_t>()(
-                (static_cast<uint16_t>(c.cmd) << 8) | c.subcmd
-            );
-        }
-    };
-}
 
 enum class Fmt : uint8_t {
     NONE,
@@ -162,10 +144,7 @@ inline size_t fmt_size(Fmt fmt) {
 }
 
 
-struct CmdInfo {
-    Fmt tx_fmt[5];
-    Fmt rx_fmt[5];
-};
+
 
 
 // Cmd Table is at 18001bb60
@@ -183,6 +162,31 @@ struct CmdInfo {
     's' = 0x3C | 60     1       cstring?
     '\0' = 0xC8 | 200   0       None?
 */
+
+struct Cmd {
+    uint8_t cmd;
+    uint8_t subcmd;
+    bool operator==(const Cmd& other) const {
+        return cmd == other.cmd && subcmd == other.subcmd;
+    }
+};
+
+namespace std {
+    template <>
+    struct hash<Cmd> {
+        size_t operator()(const Cmd& c) const noexcept {
+            // pack both bytes into one value and hash that
+            return std::hash<uint16_t>()(
+                (static_cast<uint16_t>(c.cmd) << 8) | c.subcmd
+            );
+        }
+    };
+}
+
+struct CmdInfo {
+    Fmt tx_fmt[5];
+    Fmt rx_fmt[5];
+};
 
 inline std::unordered_map<Cmd, CmdInfo> cmd_table = {
     {   // {b*} {}

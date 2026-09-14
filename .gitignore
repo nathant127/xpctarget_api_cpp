@@ -1,3 +1,4 @@
 xpc/
 build/
 xpc_test/
+.vscode/

@@ -7,7 +7,7 @@ using namespace xpcapi;
 char target_ip[] = "127.0.0.1";
 char target_port[] = "22222";
 constexpr char target_model[] = "AM2_3_1_01HWfullV2_PCIe";
-constexpr char path[] = "../xpc_test";
+constexpr char path[] = "../models";
 
 
 

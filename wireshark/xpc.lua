@@ -113,28 +113,28 @@ local function register_cmd(cmd, subcmd, name, req_fmts, resp_fmts)
 end
 
 --                cmd   subcmd  name                    request fmts     response fmts
-register_cmd(0xC8, 0x8C, "LOAD_APP",              { "ARR_BYTE" },   {}                )
-register_cmd(0x14, 0x28, "GET_SAMPLE_TIME",        {},               { "F64" }         )
-register_cmd(0x14, 0x0A, "GET_STOP_TIME",          {},               { "F64" }         )
-register_cmd(0x14, 0xA1, "GET_STATUS",             {},               { "U32" }         )
-register_cmd(0x14, 0x9B, "START/STOP",              { "U32" },        {}                )
-register_cmd(0x14, 0xAC, "UNLOAD_APP",    {},               {}                )
-register_cmd(0x14, 0x96, "PAR_NUM", {}, {"U32"}) -- Unsure about this fmt, double check
-register_cmd(0x14, 0x97, "SIG_NUM", {}, {"U32"}) -- Unsure about this fmt, double check
-register_cmd(0xC8, 0x3C, "CHECK_LOADED",    {},               { "STR" }         )
-register_cmd(0x28, 0x0A, "SIG_GET",                { "ARR_U32" },    { "ARR_F64" }     )
-register_cmd(0x28, 0x46, "SIG_GET_ID",                  { "STR" },        { "I32" }         )
-register_cmd(0x28, 0x50, "SIG_GET_NAME",                  {},        {}         ) -- Check fmt
-register_cmd(0x28, 0xA0, "SIG_GET_WIDTH",                  { "U32" },        { "U32" }         )
-register_cmd(0x28, 0x64, "SIG_GET_LABEL",                  { "U32" },        { "STR" }         )
-register_cmd(0x28, 0x5A, "SIG_LABEL_WIDTH?",                  {},        {}         ) -- Check fmt
-register_cmd(0x28, 0x1E, "PAR_SET",                  { "U32", "ARR_F64" },        { }         )
-register_cmd(0x28, 0x78, "PAR_GET_?",                  { "U32" },        { "ARR_F64" }         ) -- fmt may be wrong
-register_cmd(0x28, 0x14, "PAR_GET",                  {},        {}         ) -- Check fmt
-register_cmd(0x28, 0x82, "PAR_GET_ID",                  { "STR", "STR" },        { "U32" }         )
-register_cmd(0x28, 0x96, "PAR_GET_TYPE",                  { "U32" },        { "STR" }         )
-register_cmd(0x28, 0x8c, "PAR_GET_NAME",                  {},        {}         ) -- Check fmt
-register_cmd(0x28, 0x6E, "PAR_GET_DIM_SIZE",                  { "U32" },        { "I32" }         )
+register_cmd(0xC8, 0x8C, "LOAD_APP",                { "ARR_BYTE" },         {}                )
+register_cmd(0x14, 0x28, "GET_SAMPLE_TIME",         {},                     { "F64" }         )
+register_cmd(0x14, 0x0A, "GET_STOP_TIME",           {},                     { "F64" }         )
+register_cmd(0x14, 0xA1, "GET_STATUS",              {},                     { "U32" }         )
+register_cmd(0x14, 0x9B, "START/STOP",              { "U32" },              {}                )
+register_cmd(0x14, 0xAC, "UNLOAD_APP",              {},                     {}                )
+register_cmd(0x14, 0x96, "PAR_NUM",                 {},                     {"U32"})
+register_cmd(0x14, 0x97, "SIG_NUM",                 {},                     {"U32"}) 
+register_cmd(0xC8, 0x3C, "CHECK_LOADED",            {},                     { "STR" }         )
+register_cmd(0x28, 0x0A, "SIG_GET",                 { "ARR_U32" },          { "ARR_F64" }     )
+register_cmd(0x28, 0x46, "SIG_GET_ID",              { "STR" },              { "I32" }         )
+register_cmd(0x28, 0x50, "SIG_GET_NAME",            { "U32" },              { "STR" }         )
+register_cmd(0x28, 0xA0, "SIG_GET_WIDTH",           { "U32" },              { "U32" }         )
+register_cmd(0x28, 0x64, "SIG_GET_LABEL",           { "U32" },              { "STR" }         )
+register_cmd(0x28, 0x5A, "SIG_LABEL_WIDTH?",        { "STR" },              { "F64", "F64" }         )
+register_cmd(0x28, 0x1E, "PAR_SET",                 { "U32", "ARR_F64" },   { }         )
+register_cmd(0x28, 0x78, "PAR_GET_?",               { "U32" },              { "ARR_I32" }         )
+register_cmd(0x28, 0x14, "PAR_GET",                 { "U32" },              { "ARR_F64" }         )
+register_cmd(0x28, 0x82, "PAR_GET_ID",              { "STR", "STR" },       { "U32" }         )
+register_cmd(0x28, 0x96, "PAR_GET_TYPE",            { "U32" },              { "STR" }         )
+register_cmd(0x28, 0x8c, "PAR_GET_NAME",            { "U32" },              { "STR", "STR" }         )
+register_cmd(0x28, 0x6E, "PAR_GET_DIM_SIZE",        { "U32" },              { "I32" }         )
 
 
 -- To add more commands, copy a register_cmd(...) line above and adjust.

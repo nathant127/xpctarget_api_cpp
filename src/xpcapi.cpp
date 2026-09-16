@@ -16,6 +16,15 @@ Message* msg_ = new Message();
 
 int err_ = 0;
 
+std::string get_app_name() {
+    msg_->reset(0xC8, 0x3C);
+    msg_->send(*con_);
+
+    std::string res;
+    msg_->read(res);
+    return res;
+} 
+
 int xpcapi::xPCReOpenPort(int port) {
     return 0;
 }
@@ -23,16 +32,24 @@ int xpcapi::xPCOpenSerialPort(int comport, int baudRate) {
     return 0;
 }
 void xpcapi::xPCClosePort(int port) {
+    // Should Close socket attached to port
     return;
 }
 int xpcapi::xPCGetLastError(void) {
+    // Intentionally left unimplemented
     return 0;
 }
 void xpcapi::xPCSetLastError(int error) {
+    // Intentionally left unimplemented
     return;
 }
 double xpcapi::xPCGetExecTime(int port) {
-    return 0.0;
+    msg_->reset(0x14, 0x1E);
+    msg_->send(*con_);
+
+    double time;
+    msg_->read(time);
+    return time;
 }
 void xpcapi::xPCSetStopTime(int port, double tfinal) {
     return;
@@ -60,6 +77,8 @@ void xpcapi::xPCSetEcho(int port, int mode) {
     return;
 }
 int xpcapi::xPCGetEcho(int port) {
+    // Unsure what this does?
+    // Sends 0xC8, 0x14, gets a byte, does some manipulation to it then returns it
     return 0;
 }
 void xpcapi::xPCSetHiddenScopeEcho(int port, int mode) {
@@ -72,21 +91,30 @@ double xpcapi::xPCAverageTET(int port) {
     return 0.0;
 }
 int xpcapi::xPCGetNumParams(int port) {
-    return 0;
+    msg_->reset(0x14, 0x96);
+    msg_->send(*con_);
+    uint32_t val;
+    msg_->read(val);
+    return val;
 }
 int xpcapi::xPCGetNumSignals(int port) {
-    return 0;
+    msg_->reset(0x14, 0x97);
+    msg_->send(*con_);
+    uint32_t val;
+    msg_->read(val);
+    return val;
 }
 char * xpcapi::xPCGetAppName(int port, char *modelname) {
-    return nullptr;
+    if (modelname == nullptr) {
+        return nullptr;
+    }
+    std::string name = get_app_name();
+    std::sprintf(modelname, "%s", name.c_str());
+    return modelname;
 }
 void xpcapi::xPCUnloadApp(int port) {
     // Uses CheckPort
-    msg_->reset(0xC8, 0x3C);
-    msg_->send(*con_);
-
-    std::string res;
-    msg_->read(res);
+    std::string res = get_app_name();
 
     if (res.compare("loader") != 0) {
         int status = xPCIsAppRunning(port);
@@ -124,13 +152,32 @@ int xpcapi::xPCIsOverloaded(int port) {
     return 0;
 }
 int xpcapi::xPCGetNumOutputs(int port) {
-    return 0;
+    msg_->reset(0x14, 0x9E);
+    msg_->send(*con_);
+
+    uint32_t outputs;
+    msg_->read(outputs);
+    return outputs;
 }
 int xpcapi::xPCGetNumStates(int port) {
-    return 0;
+    msg_->reset(0x14, 0x9C);
+    msg_->send(*con_);
+    uint32_t val;
+    msg_->read(val);
+    return val;
 }
 void xpcapi::xPCGetParam(int port, int parIdx, double *paramValue) {
-    return;
+    // Not sure why xpcapi sends this packet but I wont change it
+    int dims[4];
+    xPCGetParamDims(port, parIdx, dims); 
+
+    msg_->reset(0x28, 0x14);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&parIdx), 1);
+    msg_->send(*con_);
+
+    std::vector<double> values;
+    msg_->read(values);
+    std::copy(values.begin(), values.end(), paramValue);
 }
 void xpcapi::xPCSetLogMode(int port, lgmode lgdata) {
     return;
@@ -338,10 +385,22 @@ void xpcapi::xPCLoadApp(int port, const char* pathstr, const char* filename) {
 
 }
 void xpcapi::xPCGetParamDims(int port, int parIdx, int *dims) {
-    return;
+    msg_->reset(0x28, 0x78);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&parIdx), 1);
+    msg_->send(*con_);
+
+    std::vector<int32_t> values;
+    msg_->read(values);
+    std::copy(values.begin(), values.end(), dims);
 }
-int  xpcapi::xPCGetParamDimsSize(int port, int parIdx) {
-    return 0;
+int xpcapi::xPCGetParamDimsSize(int port, int parIdx) {
+    msg_->reset(0x28, 0x6E);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&parIdx), 1);
+    msg_->send(*con_);
+
+    int32_t val;
+    msg_->read(val);
+    return val;
 }
 int xpcapi::xPCGetSignalWidth(int port, int sigIdx) {
     return 0;
@@ -365,15 +424,35 @@ char * xpcapi::xPCGetSignalLabel(int port, int sigIdx, char *sigLabel) {
     return nullptr;
 }
 
-int xpcapi::xPCGetParamIdx(int port, const char *block,
-                                const char *parameter) {
-    return 0;
+int xpcapi::xPCGetParamIdx(int port, const char *block, const char *parameter) {
+    msg_->reset(0x28, 0x82);
+    msg_->push_str(block);
+    msg_->push_str(parameter);
+    msg_->send(*con_);
+
+    uint32_t val;
+    msg_->read(val);
+    return val;
 }
 void xpcapi::xPCGetParamName(int port, int parIdx, char *block, char *param) {
-    return;
+    msg_->reset(0x28, 0x8C);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&parIdx), 1);
+    msg_->send(*con_);
+
+    std::string str;
+    msg_->read(str);
+    std::sprintf(block, "%s", str.c_str());
+    msg_->read(str);
+    std::sprintf(param, "%s", str.c_str());
 }
 void xpcapi::xPCGetParamType(int port, int parIdx, char *paramType) {
-    return;
+    msg_->reset(0x28, 0x96);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&parIdx), 1);
+    msg_->send(*con_);
+
+    std::string str;
+    msg_->read(str);
+    std::sprintf(paramType, "%s", str.c_str());
 }
 char * xpcapi::xPCGetSignalName(int port, int sigIdx, char *sigName) {
     return nullptr;
@@ -429,6 +508,7 @@ void xpcapi::xPCOpenConnection(int port) {
     return;
 }
 void xpcapi::xPCCloseConnection(int port) {
+    xPCClosePort(port);
     return;
 }
 int xpcapi::xPCRegisterTarget(int commType, const char *ipAddress,
@@ -440,7 +520,7 @@ void xpcapi::xPCDeRegisterTarget(int port) {
     return;
 }
 const char * xpcapi::xPCGetAPIVersion(void) {
-    return nullptr;
+    return "cpp_0.1";
 }
 void xpcapi::xPCGetTargetVersion(int port, char *ver) {
     return;
@@ -551,16 +631,34 @@ int xpcapi::xPCFSDirStructSize(int port, const char *path) {
     return 0;
 }
 int xpcapi::xPCGetNumScopes(int port) {
-    return 0;
+    msg_->reset(0x1E, 0x99);
+    msg_->send(*con_);
+    uint32_t val;
+    msg_->read(val);
+    return val;
 }
 int xpcapi::xPCGetNumHiddenScopes(int port) {
-    return 0;
+    msg_->reset(0x1E, 0x9A);
+    msg_->send(*con_);
+    uint32_t val;
+    msg_->read(val);
+    return val;
 }
 void xpcapi::xPCGetScopeList(int port, int *data) {
     return;
 }
 void xpcapi::xPCGetHiddenList(int port, int *data) {
-    return;
+    if (data == nullptr) {
+        return;
+    }
+
+    msg_->reset(0x1E, 0x9D);
+    msg_->send(*con_);
+
+    std::vector<int32_t> data_vec;
+    msg_->read(data_vec);
+
+    std::copy(data_vec.begin(), data_vec.end(), data);
 }
 void xpcapi::xPCScGetSignalList(int port, int scNum, int *data) {
     return;

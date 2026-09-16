@@ -25,6 +25,8 @@ public:
     template <typename DataType>
     void push(const std::vector<DataType> buf);
 
+    void push_str(const char* buf);
+
     int send(const Connection& con);
 
     template <typename Type>

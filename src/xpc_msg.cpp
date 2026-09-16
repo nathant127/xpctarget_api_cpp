@@ -73,6 +73,10 @@ template void Message::push<uint32_t>(const uint32_t* buf, size_t buf_size);
 template void Message::push<int32_t>(const int32_t* buf, size_t buf_size);
 template void Message::push<double>(const double* buf, size_t buf_size);
 
+void Message::push_str(const char* buf) {
+    int n = std::strlen(buf);
+    push<char>(buf, n+1);
+}
 
 int Message::send(const Connection& con) {
     read_idx = 0;

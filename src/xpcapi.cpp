@@ -177,12 +177,27 @@ void xpcapi::xPCGetParam(int port, int parIdx, double *paramValue) {
 
     std::vector<double> values;
     msg_->read(values);
-    std::copy(values.begin(), values.end(), paramValue);
+    std::move(values.begin(), values.end(), paramValue);
 }
 void xpcapi::xPCSetLogMode(int port, lgmode lgdata) {
     return;
 }
 void xpcapi::xPCSetParam(int port, int parIdx, const double *paramValue) {
+    int dims_size = xPCGetParamDimsSize(port, parIdx);
+
+    std::vector<int> dims(dims_size, 0);
+    xPCGetParamDims(port, parIdx, dims.data());
+
+    int param_value_size = 1;
+    for (int i = 0; i < dims.size(); i++) {
+        param_value_size *= dims[i];
+    }
+
+    msg_->reset(0x28, 0x1E);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&parIdx), 1);
+    msg_->push(paramValue, dims_size);
+    msg_->send(*con_);
+
     return;
 }
 lgmode xpcapi::xPCGetLogMode(int port) {
@@ -198,7 +213,8 @@ int xpcapi::xPCNumLogWraps(int port) {
     return 0;
 }
 void xpcapi::xPCReboot(int port) {
-    return;
+    msg_->reset(0xC8, 0x46);
+    msg_->send(*con_);
 }
 void xpcapi::xPCGetOutputLog(int port, int start, int numsamples,
                                   int decimation, int output_id, double *data) {
@@ -391,7 +407,7 @@ void xpcapi::xPCGetParamDims(int port, int parIdx, int *dims) {
 
     std::vector<int32_t> values;
     msg_->read(values);
-    std::copy(values.begin(), values.end(), dims);
+    std::move(values.begin(), values.end(), dims);
 }
 int xpcapi::xPCGetParamDimsSize(int port, int parIdx) {
     msg_->reset(0x28, 0x6E);
@@ -403,25 +419,78 @@ int xpcapi::xPCGetParamDimsSize(int port, int parIdx) {
     return val;
 }
 int xpcapi::xPCGetSignalWidth(int port, int sigIdx) {
-    return 0;
+    msg_->reset(0x28, 0xA0);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&sigIdx), 1);
+    msg_->send(*con_);
+
+    int32_t val;
+    msg_->read(val);
+    return val;
 }
 int xpcapi::xPCGetSignalIdx(int port, const char *sigName ) {
     msg_->reset(0x28, 0x46);
-    msg_->push<char>(sigName, strlen(sigName) + 1);
+    msg_->push_str(sigName);
     msg_->send(*con_);
-    int32_t val;
-    msg_->read<int32_t>(val);
+    uint32_t val;
+    msg_->read<uint32_t>(val);
     return val;
 }
 
 int xpcapi::xPCGetSigLabelWidth(int port, const char *sigName) {
-    return 0;
+    msg_->reset(0x28, 0x5A);
+    msg_->push_str(sigName);
+    msg_->send(*con_);
+
+    int32_t idx_start;
+    msg_->read(idx_start);
+
+    int32_t idx_size;
+    msg_->read(idx_size);
+
+    return idx_size;
 }
 int xpcapi::xPCGetSigIdxfromLabel(int port, const char *sigName, int *sigIds) {
+    msg_->reset(0x28, 0x5A);
+    msg_->push_str(sigName);
+    msg_->send(*con_);
+
+    int32_t idx_start;
+    msg_->read(idx_start);
+    if (idx_start == -1) {
+        return -1;
+    }
+
+    int32_t idx_size;
+    msg_->read(idx_size);
+    if (idx_size == 0) {
+        return 0;
+    }
+
+    for (int i = 0; i < idx_size; i++) {
+        sigIds[i] = idx_start;
+        idx_start++;
+    }
+
     return 0;
 }
 char * xpcapi::xPCGetSignalLabel(int port, int sigIdx, char *sigLabel) {
-    return nullptr;
+    if (sigLabel == nullptr) {
+        return nullptr;
+    }
+
+    if (sigIdx < 0) {
+        return nullptr;
+    }
+
+    msg_->reset(0x28, 0x64);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&sigIdx), 1);
+    msg_->send(*con_);
+
+    std::string str;
+    msg_->read(str);
+    std::strcpy(sigLabel, str.c_str());
+
+    return sigLabel;
 }
 
 int xpcapi::xPCGetParamIdx(int port, const char *block, const char *parameter) {
@@ -455,7 +524,23 @@ void xpcapi::xPCGetParamType(int port, int parIdx, char *paramType) {
     std::sprintf(paramType, "%s", str.c_str());
 }
 char * xpcapi::xPCGetSignalName(int port, int sigIdx, char *sigName) {
-    return nullptr;
+    if (sigName == nullptr) {
+        return nullptr;
+    }
+
+    if (sigIdx < 0) {
+        return nullptr;
+    }
+
+    msg_->reset(0x28, 0x50);
+    msg_->push<uint32_t>(reinterpret_cast<uint32_t*>(&sigIdx), 1);
+    msg_->send(*con_);
+
+    std::string str;
+    msg_->read(str);
+    std::strcpy(sigName, str.c_str());
+
+    return sigName;
 }
 int xpcapi::xPCTgScGetGrid(int port, int scNum) {
     return 0;
@@ -523,9 +608,28 @@ const char * xpcapi::xPCGetAPIVersion(void) {
     return "cpp_0.1";
 }
 void xpcapi::xPCGetTargetVersion(int port, char *ver) {
-    return;
+    msg_->reset(0xC8, 0x0A);
+    msg_->send(*con_);
+
+    std::string ver_str;
+    msg_->read(ver_str);
+
+    if (ver_str.compare(0, 9, "xPCTarget") != 0) {
+        return;
+    }
+
+    ver_str = ver_str.substr(9);
+    std::strcpy(ver, ver_str.c_str());
 }
 int xpcapi::xPCTargetPing(int port) {
+    try {
+        char ver[112];
+        xPCGetTargetVersion(port, ver);
+    }
+    catch (const std::runtime_error& e) {
+        return -1;
+    }
+
     return 0;
 }
 void xpcapi::xPCFSReadFile(int port, int fileHandle, int start,
@@ -658,19 +762,34 @@ void xpcapi::xPCGetHiddenList(int port, int *data) {
     std::vector<int32_t> data_vec;
     msg_->read(data_vec);
 
-    std::copy(data_vec.begin(), data_vec.end(), data);
+    std::move(data_vec.begin(), data_vec.end(), data);
 }
 void xpcapi::xPCScGetSignalList(int port, int scNum, int *data) {
     return;
 }
 int xpcapi::xPCGetSimMode(int port) {
-    return 0;
+    msg_->reset(0x14, 0xA6);
+    msg_->send(*con_);
+
+    uint32_t val;
+    msg_->read(val);
+    return val;
 }
 void xpcapi::xPCGetPCIInfo(int port, char *buf) {
-    return;
+    msg_->reset(0xC8, 0x50);
+    msg_->send(*con_);
+
+    std::vector<uint8_t> values;
+    msg_->read(values);
+    std::move(values.begin(), values.end(), buf);
 }
 double xpcapi::xPCGetSessionTime(int port) {
-    return 0.0;
+    msg_->reset(0xC8, 0x96);
+    msg_->send(*con_);
+
+    double val;
+    msg_->read(val);
+    return val;
 }
 void xpcapi::xPCGetLogStatus(int port, int *logArray) {
     return;

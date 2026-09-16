@@ -53,7 +53,8 @@ public:
     
     uint8_t cmd_;
     uint8_t subcmd_;
-    Fmt* next_tx_fmt_ptr_;
+    std::vector<Fmt>::iterator tx_fmt_vec_it_;
+    std::vector<Fmt>::iterator tx_fmt_vec_end_;
 
     struct {
         uint8_t magic_num1;
@@ -186,41 +187,124 @@ namespace std {
 }
 
 struct CmdInfo {
-    Fmt tx_fmt[5];
-    Fmt rx_fmt[5];
+    std::vector<Fmt> tx_fmt;
+    std::vector<Fmt> rx_fmt;
 };
 
 inline std::unordered_map<Cmd, CmdInfo> cmd_table = {
-    {   // {b*} {}
-        {0xc8, 0x8c}, {{Fmt::ARR_BYTE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Load app
-    },
-    {   // {} {f}
-        {0x14, 0x28}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get sample time
-    },
-    {   // {} {f}
-        {0x14, 0x0A}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get Stop time
-    },
-    {   // {} {ud}
-        {0x14, 0xA1}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get status? 
-    },
-    {   // {ud} {}
-        {0x14, 0x9B}, {{Fmt::U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Send Flag to app? 5 = Start, 1 = Stop
-    },
-    {   // {} {}
-        {0x14, 0xAC}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
-    },
+    {{0xC8, 0x0A}, {{}, {Fmt::STR}}},
+    {{0xC8, 0x14}, {{}, {Fmt::BYTE}}},
+    {{0xC8, 0x1E}, {{Fmt::BYTE}, {}}},
+    {{0xC8, 0x28}, {{}, {Fmt::BYTE}}},
+    {{0xC8, 0x32}, {{Fmt::BYTE}, {}}},
+    {{0xC8, 0x3C}, {{}, {Fmt::STR}}},
+    {{0xC8, 0x46}, {{}, {}}},
+    {{0xC8, 0x50}, {{}, {Fmt::ARR_BYTE}}},
+    {{0xC8, 0x64}, {{Fmt::I32, Fmt::STR}, {Fmt::ARR_BYTE}}},
+    {{0xC8, 0x8C}, {{Fmt::ARR_BYTE}, {}}},
+    {{0xC8, 0x96}, {{}, {Fmt::F64}}},
+    {{0xC8, 0xA0}, {{}, {Fmt::I32}}},
+    {{0xC8, 0xAA}, {{Fmt::I32}, {}}},
 
-    {   // {} {s}
-        {0xC8, 0x3C}, {{Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Unknown
-    },
+    {{0x28, 0x0A}, {{Fmt::ARR_U32}, {Fmt::ARR_F64}}},
+    {{0x28, 0x14}, {{Fmt::U32}, {Fmt::ARR_F64}}},
+    {{0x28, 0x1E}, {{Fmt::U32, Fmt::ARR_F64}, {}}},
+    {{0x28, 0x32}, {{Fmt::STR}, {}}},
+    {{0x28, 0x3C}, {{Fmt::STR}, {}}},
+    {{0x28, 0x46}, {{Fmt::STR}, {Fmt::I32}}},
+    {{0x28, 0x50}, {{Fmt::U32}, {Fmt::STR}}},
+    {{0x28, 0x5A}, {{Fmt::STR}, {Fmt::I32, Fmt::I32}}},
+    {{0x28, 0x64}, {{Fmt::U32}, {Fmt::STR}}},
+    {{0x28, 0x6E}, {{Fmt::U32}, {Fmt::I32}}},
+    {{0x28, 0x78}, {{Fmt::U32}, {Fmt::ARR_I32}}},
+    {{0x28, 0x82}, {{Fmt::STR, Fmt::STR}, {Fmt::U32}}},
+    {{0x28, 0x8C}, {{Fmt::U32}, {Fmt::STR, Fmt::STR}}},
+    {{0x28, 0x96}, {{Fmt::U32}, {Fmt::STR}}},
+    {{0x28, 0xA0}, {{Fmt::U32}, {Fmt::U32}}},
 
-    {   // {ud*} {f*}
-        {0x28, 0x0A}, {{Fmt::ARR_U32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::ARR_F64,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get signal data
-    },
-    {   // {s} {d}
-        {0x28, 0x46}, {{Fmt::STR,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}, {Fmt::I32,Fmt::NONE,Fmt::NONE,Fmt::NONE,Fmt::NONE}} // Get signal id
-    },
+    {{0x14, 0x0A}, {{}, {Fmt::F64}}},
+    {{0x14, 0x14}, {{Fmt::F64}, {}}},
+    {{0x14, 0x1E}, {{}, {Fmt::F64}}},
+    {{0x14, 0x28}, {{}, {Fmt::F64}}},
+    {{0x14, 0x32}, {{Fmt::F64}, {}}},
+    {{0x14, 0x6E}, {{}, {Fmt::F64, Fmt::F64}}},
+    {{0x14, 0x78}, {{}, {Fmt::F64, Fmt::F64}}},
+    {{0x14, 0x82}, {{}, {Fmt::F64}}},
+    {{0x14, 0x8C}, {{Fmt::U32, Fmt::U32, Fmt::U32}, {Fmt::ARR_BYTE}}},
+    {{0x14, 0x96}, {{}, {Fmt::U32}}},
+    {{0x14, 0x97}, {{}, {Fmt::U32}}},
+    {{0x14, 0x9B}, {{Fmt::U32}, {}}},
+    {{0x14, 0x9C}, {{}, {Fmt::U32}}},
+    {{0x14, 0x9E}, {{}, {Fmt::U32}}},
+    {{0x14, 0xA1}, {{}, {Fmt::U32}}},
+    {{0x14, 0xA2}, {{}, {Fmt::U32}}},
+    {{0x14, 0xA3}, {{}, {Fmt::U32}}},
+    {{0x14, 0xA4}, {{}, {Fmt::U32}}},
+    {{0x14, 0xA5}, {{}, {Fmt::U32}}},
+    {{0x14, 0xA6}, {{}, {Fmt::U32}}},
+    {{0x14, 0xA7}, {{}, {}}},
+    {{0x14, 0xA8}, {{}, {Fmt::U32}}},
+    {{0x14, 0xAC}, {{}, {}}},
 
-
+    {{0x1E, 0x0A}, {{Fmt::I32, Fmt::I32, Fmt::I32, Fmt::I32, Fmt::I32}, {Fmt::ARR_F64}}},
+    {{0x1E, 0x0F}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x10}, {{Fmt::U32}, {}}},
+    {{0x1E, 0x14}, {{Fmt::U32}, {Fmt::F64}}},
+    {{0x1E, 0x19}, {{Fmt::U32}, {Fmt::F64}}},
+    {{0x1E, 0x1E}, {{Fmt::U32, Fmt::F64}, {}}},
+    {{0x1E, 0x23}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x28}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x2D}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x32}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x37}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x3C}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x41}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x46}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x4B}, {{Fmt::U32}, {Fmt::I32}}},
+    {{0x1E, 0x50}, {{Fmt::U32, Fmt::I32}, {}}},
+    {{0x1E, 0x55}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x5A}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x64}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x65}, {{Fmt::U32, Fmt::I32}, {}}},
+    {{0x1E, 0x66}, {{Fmt::U32}, {Fmt::I32}}},
+    {{0x1E, 0x68}, {{Fmt::U32, Fmt::I32}, {}}},
+    {{0x1E, 0x6A}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x6C}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x6E}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x78}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x79}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x7D}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x7E}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x7F}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x80}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x81}, {{Fmt::U32, Fmt::U32}, {}}},
+    {{0x1E, 0x82}, {{Fmt::U32}, {Fmt::F64, Fmt::F64}}},
+    {{0x1E, 0x83}, {{Fmt::U32, Fmt::F64, Fmt::F64}, {}}},
+    {{0x1E, 0x84}, {{}, {Fmt::U32}}},
+    {{0x1E, 0x85}, {{Fmt::U32}, {}}},
+    {{0x1E, 0x87}, {{Fmt::U32, Fmt::U32}, {Fmt::STR}}},
+    {{0x1E, 0x8C}, {{Fmt::U32, Fmt::U32, Fmt::STR}, {}}},
+    {{0x1E, 0x91}, {{Fmt::U32}, {Fmt::U32}}},
+    {{0x1E, 0x96}, {{Fmt::U32}, {}}},
+    {{0x1E, 0x97}, {{Fmt::U32}, {}}},
+    {{0x1E, 0x98}, {{Fmt::U32}, {}}},
+    {{0x1E, 0x99}, {{}, {Fmt::U32}}},
+    {{0x1E, 0x9A}, {{}, {Fmt::U32}}},
+    {{0x1E, 0x9B}, {{}, {Fmt::ARR_I32}}},
+    {{0x1E, 0x9C}, {{}, {Fmt::ARR_I32}}},
+    {{0x1E, 0x9D}, {{}, {Fmt::ARR_I32}}},
+    {{0x1E, 0x9E}, {{}, {Fmt::ARR_I32}}},
+    {{0x1E, 0x9F}, {{Fmt::U32}, {Fmt::ARR_I32}}},
+    {{0x1E, 0xA0}, {{Fmt::U32}, {Fmt::ARR_I32}}},
+    {{0x1E, 0xA1},
+     {{Fmt::U32},
+      {Fmt::F64,  Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32,
+       Fmt::U32,  Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32,
+       Fmt::U32,  Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32,
+       Fmt::U32}}},
+    {{0x1E, 0xA2},
+     {{Fmt::U32,  Fmt::F64, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32,
+       Fmt::U32,  Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32,
+       Fmt::U32,  Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32, Fmt::U32},
+      {}}},
 };
-

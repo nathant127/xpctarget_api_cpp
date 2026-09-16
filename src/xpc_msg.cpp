@@ -204,20 +204,19 @@ void Message::reset(uint8_t cmd, uint8_t subcmd) {
     payload1_finalsize = 0;
 
     res_data.clear();
-    next_tx_fmt_ptr_ = nullptr;
+    auto& tx_fmt = cmd_table.at(Cmd{cmd, subcmd}).tx_fmt;
+    tx_fmt_vec_it_ = tx_fmt.begin();
+    tx_fmt_vec_end_ = tx_fmt.end();
 }
 
 Fmt Message::get_next_fmt() {
     Fmt return_fmt = Fmt::NONE;
-    if (!next_tx_fmt_ptr_) {
-        next_tx_fmt_ptr_ = cmd_table.at(Cmd{cmd_, subcmd_}).tx_fmt;
-    }
-
     // If at end of fmt table, just return none and don't increment
-    return_fmt = *next_tx_fmt_ptr_;
-    if (return_fmt == Fmt::NONE)
+    if (tx_fmt_vec_it_ == tx_fmt_vec_end_)
         return Fmt::NONE;
 
-    next_tx_fmt_ptr_++;
+    return_fmt = *tx_fmt_vec_it_;
+    tx_fmt_vec_it_++;
+    
     return return_fmt;
 }

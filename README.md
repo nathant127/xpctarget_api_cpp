@@ -14,3 +14,4 @@
 - Test other operation modes
 - See if I can move the robot without disabling safety
 - See if I can get a 3d model out of the armeo power software -> Ghidra?
+- Document which joint is which and what the joint limits are.

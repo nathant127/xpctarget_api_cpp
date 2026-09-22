@@ -142,6 +142,14 @@ void Message::read(std::vector<Type>& vec) {
     read_idx += bytesize;
 }
 
+template void Message::read<uint32_t>(std::vector<uint32_t>& x);
+template void Message::read<int32_t>(std::vector<int32_t>& x);
+template void Message::read<uint16_t>(std::vector<uint16_t>& x);
+template void Message::read<int16_t>(std::vector<int16_t>& x);
+template void Message::read<uint8_t>(std::vector<uint8_t>& x);
+template void Message::read<char>(std::vector<char>& x);
+template void Message::read<double>(std::vector<double>& x);
+
 template<typename Type>
 void Message::read(Type arr[]) {
 

@@ -11,19 +11,6 @@ This is needed as Mathworks never built a version of their api for linux.
 As this is a replacement, the function signatures and functionality are the same so that it can work as a drop in replacement.
 
 The API is not complete, many functions are left unimplemented and some may not be tested, however the goal was only to implement and test the functions necessary for the Armeo Power project and that was sucessful.
-# xpctarget_api_cpp
-
-This repository is part of project to allow controlling the Armeo Power exoskeleton through ROS2 linux, however this library works on its own. 
-The documentation for the Armeo Power project can be found here [armeo_docs](https://github.com/nathant127/armeo_docs).
-
-xpctarget is a system developed by Mathworks to design and deploy realtime models onto a "Target PC", which can then be communicated with via the xpc target api.
-
-This repository is a C++ linux based replacement for "xpcapi.dll", a windows based C library that allows a user to communicate with the Target PC.
-This is needed as Mathworks never built a version of their api for linux.
-
-As this is a replacement, the function signatures and functionality are the same so that it can work as a drop in replacement.
-
-The API is not complete, many functions are left unimplemented and some may not be tested, however the goal was only to implement and test the functions necessary for the Armeo Power project and that was sucessful.
 
 ## Design
 
